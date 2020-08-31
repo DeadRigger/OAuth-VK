@@ -1,0 +1,92 @@
+<html>
+  <header>
+    <style type="text/css">
+      #app {
+        width: 100%;
+        text-align: center;
+      }
+    </style>
+  </header>
+  <body>
+    <div id="app">
+      <a v-if="seen" href="https://oauth.vk.com/authorize?v=5.122&client_id=6437420&display=popup&redirect_uri=http://www.zemsksovalex-ru.1gb.ru&scope=friends&response_type=token&state=OK">
+        <button>{{name}}</button>
+      </a>
+    </div>
+    <div id="app-2">
+      <div v-if="seen">
+        <h1>{{username}}</h1>
+        <ol>
+          <li v-for="todo in todos">
+            {{ todo.first_name }}  {{ todo.last_name }}
+          </li>
+        </ol>
+        <button v-on:click="exit">Выход</button>
+      </div>
+    </div>
+  </body>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  <script type="text/javascript">
+    var auth = new Vue({
+      el: '#app',
+      data: {
+        name: 'Авторизоваться',
+        seen: true
+      },
+      mounted() {
+        if (document.location.hash) {
+          url_hash = document.location.hash.slice(1);
+
+          pos_user_id = url_hash.indexOf('user_id=') + 8;
+          user_id = url_hash.slice(pos_user_id, url_hash.indexOf('&', pos_user_id));
+
+          pos_token = url_hash.indexOf('access_token=') + 13;
+          token = url_hash.slice(pos_token, url_hash.indexOf('&', pos_token));
+
+          localStorage.access_token = token;
+          localStorage.user_id = user_id;
+        } else {
+          this.seen = true;
+          profile.seen = false;
+        }
+      }
+    })
+    var profile = new Vue({
+      el: '#app-2',
+      data: {
+        username: null,
+        todos: null,
+        seen: false
+      },
+      methods: {
+        exit() {
+          localStorage.access_token = '';
+          localStorage.user_id = '';
+
+          this.seen = false;
+          auth.seen = true;
+        }
+      },
+      mounted() {
+        token = localStorage.access_token;
+        user_id = localStorage.user_id;
+        if (token && user_id) {
+          axios
+            .get('https://api.vk.com/method/friends.get?v=5.122&order=random&count=5&fields=first_name&access_token=' + token)
+            .then(response => (profile.todos = response.data.response.items));
+
+          axios
+            .get('https://api.vk.com/method/users.get?v=5.122&access_token=' + token + '&user_ids=' + user_id)
+            .then(response => (profile.username = response.data.response[0].first_name + ' ' + response.data.response[0].last_name));
+          
+          this.seen = true;
+          auth.seen = false;
+        } else {
+          this.seen = false;
+          auth.seen = true;
+        }
+      }
+    })
+  </script>
+</html>
